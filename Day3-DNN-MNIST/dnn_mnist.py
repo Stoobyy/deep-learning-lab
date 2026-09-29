@@ -1,0 +1,32 @@
+import tensorflow as tf
+from tensorflow.keras import layers, regularizers
+from sklearn.metrics import confusion_matrix
+
+# 1) Import dataset
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+x_train = x_train.reshape(-1, 784) / 255.0
+x_test = x_test.reshape(-1, 784) / 255.0
+
+# 2) Build model (784 -> 128 -> 64 -> 10)
+def build_model():
+    model = tf.keras.Sequential([
+        layers.Input(shape=(784,)),
+        layers.Dense(128, activation='relu', kernel_regularizer=regularizers.l1(0.0001)),
+        layers.Dropout(0.2),
+        layers.Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
+        layers.Dense(10, activation='softmax')
+    ])
+    return model
+
+early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=2, restore_best_weights=True)
+
+# Train with each optimizer
+for opt in ['sgd', 'adam', 'rmsprop']:
+    model = build_model()
+    model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    model.fit(x_train, y_train, epochs=5, validation_split=0.1, callbacks=[early])
+
+    # 3) Confusion matrix
+    y_pred = model.predict(x_test).argmax(axis=1)
+    print(opt)
+    print(confusion_matrix(y_test, y_pred))
