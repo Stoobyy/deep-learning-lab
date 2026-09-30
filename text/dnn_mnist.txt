@@ -2,12 +2,10 @@ import tensorflow as tf
 from tensorflow.keras import layers, regularizers
 from sklearn.metrics import confusion_matrix
 
-# 1) Import dataset
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 x_train = x_train.reshape(-1, 784) / 255.0
 x_test = x_test.reshape(-1, 784) / 255.0
 
-# 2) Build model (784 -> 128 -> 64 -> 10)
 def build_model():
     model = tf.keras.Sequential([
         layers.Input(shape=(784,)),
@@ -20,24 +18,11 @@ def build_model():
 
 early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=2, restore_best_weights=True)
 
-# Learning rate (change as specified)
-lr = 0.01
-
-optimizers = {
-    'sgd':     lambda: tf.keras.optimizers.SGD(learning_rate=lr),
-    'adam':    lambda: tf.keras.optimizers.Adam(learning_rate=lr),
-    'rmsprop': lambda: tf.keras.optimizers.RMSprop(learning_rate=lr),
-}
-
-# Train with each optimizer
-for name, make_opt in optimizers.items():
+for opt in ['sgd', 'adam', 'rmsprop']:
     model = build_model()
-    model.compile(optimizer=make_opt(),
-                  loss='sparse_categorical_crossentropy',
-                  metrics=['accuracy'])
+    model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     model.fit(x_train, y_train, epochs=5, validation_split=0.1, callbacks=[early])
 
-    # 3) Confusion matrix
     y_pred = model.predict(x_test).argmax(axis=1)
-    print(name)
+    print(opt)
     print(confusion_matrix(y_test, y_pred))

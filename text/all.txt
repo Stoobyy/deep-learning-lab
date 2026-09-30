@@ -1,0 +1,209 @@
+# dnn_mnist
+import tensorflow as tf
+from tensorflow.keras import layers, regularizers
+from sklearn.metrics import confusion_matrix
+
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+x_train = x_train.reshape(-1, 784) / 255.0
+x_test = x_test.reshape(-1, 784) / 255.0
+
+def build_model():
+    model = tf.keras.Sequential([
+        layers.Input(shape=(784,)),
+        layers.Dense(128, activation='relu', kernel_regularizer=regularizers.l1(0.0001)),
+        layers.Dropout(0.2),
+        layers.Dense(64, activation='relu', kernel_regularizer=regularizers.l2(0.001)),
+        layers.Dense(10, activation='softmax')
+    ])
+    return model
+
+early = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=2, restore_best_weights=True)
+
+for opt in ['sgd', 'adam', 'rmsprop']:
+    model = build_model()
+    model.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    model.fit(x_train, y_train, epochs=5, validation_split=0.1, callbacks=[early])
+
+    y_pred = model.predict(x_test).argmax(axis=1)
+    print(opt)
+    print(confusion_matrix(y_test, y_pred))
+
+
+# cnn_mnist
+import tensorflow as tf
+from tensorflow.keras import layers
+from sklearn.metrics import confusion_matrix
+
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+x_train = x_train.reshape(-1, 28, 28, 1) / 255.0
+x_test = x_test.reshape(-1, 28, 28, 1) / 255.0
+
+model = tf.keras.Sequential([
+    layers.Input(shape=(28, 28, 1)),
+    layers.Conv2D(32, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Flatten(),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(10, activation='softmax')
+])
+
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+model.fit(x_train, y_train, epochs=5, validation_split=0.1)
+
+loss, acc = model.evaluate(x_test, y_test)
+print("Test accuracy:", acc)
+
+y_pred = model.predict(x_test).argmax(axis=1)
+print(confusion_matrix(y_test, y_pred))
+
+
+# vgg16_cats_dogs
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers
+from tensorflow.keras.applications import VGG16
+from sklearn.metrics import confusion_matrix
+
+train_ds = tf.keras.utils.image_dataset_from_directory('dataset/train', image_size=(150, 150), batch_size=32)
+test_ds = tf.keras.utils.image_dataset_from_directory('dataset/test', image_size=(150, 150), batch_size=32, shuffle=False)
+
+def build_model(augment):
+    base = VGG16(weights='imagenet', include_top=False, input_shape=(150, 150, 3))
+    base.trainable = False
+
+    model = tf.keras.Sequential()
+    model.add(layers.Input(shape=(150, 150, 3)))
+    if augment:
+        model.add(layers.RandomRotation(0.1))
+        model.add(layers.RandomZoom(0.1))
+        model.add(layers.RandomFlip('horizontal'))
+    model.add(layers.Rescaling(1./255))
+    model.add(base)
+    model.add(layers.Flatten())
+    model.add(layers.Dense(128, activation='relu'))
+    model.add(layers.Dense(1, activation='sigmoid'))
+    return model
+
+y_true = np.concatenate([y for x, y in test_ds])
+
+for augment in [False, True]:
+    model = build_model(augment)
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    model.fit(train_ds, epochs=3)
+
+    y_pred = (model.predict(test_ds) > 0.5).astype(int).ravel()
+    print("Augmentation:", augment)
+    print(confusion_matrix(y_true, y_pred))
+
+
+# rnn
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
+from tensorflow.keras import Sequential, layers
+
+df = pd.read_csv('airline-passengers.csv')
+data = df['Passengers'].values.reshape(-1, 1).astype('float32')
+scaler = MinMaxScaler()
+data = scaler.fit_transform(data)
+
+look_back = 12
+X, y = [], []
+for i in range(len(data) - look_back):
+    X.append(data[i:i + look_back])
+    y.append(data[i + look_back])
+X, y = np.array(X), np.array(y)
+
+split = int(len(X) * 0.8)
+X_train, X_test = X[:split], X[split:]
+y_train, y_test = y[:split], y[split:]
+
+model = Sequential([
+    layers.Input(shape=(look_back, 1)),
+    layers.SimpleRNN(50),
+    layers.Dense(1)
+])
+model.compile(optimizer='adam', loss='mse')
+model.fit(X_train, y_train, epochs=100, batch_size=8, verbose=0)
+
+pred = scaler.inverse_transform(model.predict(X_test))
+actual = scaler.inverse_transform(y_test)
+mse = mean_squared_error(actual, pred)
+print("RNN MSE:", mse, "RMSE:", np.sqrt(mse))
+
+
+# lstm
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
+from tensorflow.keras import Sequential, layers
+
+df = pd.read_csv('airline-passengers.csv')
+data = df['Passengers'].values.reshape(-1, 1).astype('float32')
+scaler = MinMaxScaler()
+data = scaler.fit_transform(data)
+
+look_back = 12
+X, y = [], []
+for i in range(len(data) - look_back):
+    X.append(data[i:i + look_back])
+    y.append(data[i + look_back])
+X, y = np.array(X), np.array(y)
+
+split = int(len(X) * 0.8)
+X_train, X_test = X[:split], X[split:]
+y_train, y_test = y[:split], y[split:]
+
+model = Sequential([
+    layers.Input(shape=(look_back, 1)),
+    layers.LSTM(50),
+    layers.Dense(1)
+])
+model.compile(optimizer='adam', loss='mse')
+model.fit(X_train, y_train, epochs=100, batch_size=8, verbose=0)
+
+pred = scaler.inverse_transform(model.predict(X_test))
+actual = scaler.inverse_transform(y_test)
+mse = mean_squared_error(actual, pred)
+print("LSTM MSE:", mse, "RMSE:", np.sqrt(mse))
+
+
+# gru
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
+from tensorflow.keras import Sequential, layers
+
+df = pd.read_csv('airline-passengers.csv')
+data = df['Passengers'].values.reshape(-1, 1).astype('float32')
+scaler = MinMaxScaler()
+data = scaler.fit_transform(data)
+
+look_back = 12
+X, y = [], []
+for i in range(len(data) - look_back):
+    X.append(data[i:i + look_back])
+    y.append(data[i + look_back])
+X, y = np.array(X), np.array(y)
+
+split = int(len(X) * 0.8)
+X_train, X_test = X[:split], X[split:]
+y_train, y_test = y[:split], y[split:]
+
+model = Sequential([
+    layers.Input(shape=(look_back, 1)),
+    layers.GRU(50),
+    layers.Dense(1)
+])
+model.compile(optimizer='adam', loss='mse')
+model.fit(X_train, y_train, epochs=100, batch_size=8, verbose=0)
+
+pred = scaler.inverse_transform(model.predict(X_test))
+actual = scaler.inverse_transform(y_test)
+mse = mean_squared_error(actual, pred)
+print("GRU MSE:", mse, "RMSE:", np.sqrt(mse))

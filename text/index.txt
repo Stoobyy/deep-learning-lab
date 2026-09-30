@@ -1,0 +1,7 @@
+dnn_mnist.txt
+cnn_mnist.txt
+vgg16_cats_dogs.txt
+rnn.txt
+lstm.txt
+gru.txt
+all.txt
