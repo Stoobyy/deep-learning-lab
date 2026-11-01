@@ -147,3 +147,25 @@ Alternatively, change `data_dir` in the script to the absolute dataset path, for
 - For other classes, update `class_names` in both loaders and set the final Dense layer's neuron count to the number of classes.
 - The reported accuracy is validation accuracy. Reserve separate test images if a final test evaluation is required.
 - 28 x 28 grayscale keeps this example close to MNIST but loses detail from animal photos.
+
+
+## Testing
+
+```python
+
+img = tf.keras.utils.load_img(
+    "cat.jpg",
+    target_size=(28, 28),
+    color_mode="grayscale"
+)
+
+img = tf.keras.utils.img_to_array(img).reshape(1, 28, 28, 1)
+prediction = model.predict(img)
+
+class_name=["Cat", "Dog"]
+print(class_name[prediction.argmax()]) 
+"""if the model returns [0.9, 0.1], prediction.argmax()
+ returns the index with highest value, in this case 0
+ class_name[0] is Cat""" 
+
+```
