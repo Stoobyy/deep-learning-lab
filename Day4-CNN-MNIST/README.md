@@ -112,3 +112,38 @@ Test accuracy is usually about 98–99% after 5 epochs, higher than the Day 3 DN
 - **Why pooling?** It shrinks the feature maps, reduces computation, and makes the model less sensitive to small shifts in the image.
 - **Why does a CNN beat a DNN on images?** It keeps the 2D structure, so it learns local patterns, and the same filter is reused everywhere, so it needs far fewer weights.
 - **Feature extraction process:** early conv layers detect simple edges; later layers combine them into shapes; the Dense layers use those shapes to decide the digit.
+
+## Using a supplied image dataset
+
+Use `cnn_given_dataset.py` when images are supplied in class folders instead of MNIST. This is a simple folder-loading example using Adam, with 80% training and 20% validation.
+
+Place a `dataset` folder inside this day's folder:
+
+```text
+Day4-CNN-MNIST/
+    cnn_given_dataset.py
+    dataset/
+        cats/
+            cat1.jpg
+            cat2.jpg
+        dogs/
+            dog1.jpg
+            dog2.jpg
+```
+
+Run from this day's folder:
+
+```powershell
+pip install tensorflow
+python cnn_given_dataset.py
+```
+
+Alternatively, change `data_dir` in the script to the absolute dataset path, for example `r"C:\datasets\animals"`. It must point to the parent containing both class folders.
+
+- Folder names provide labels: `cats = 0`, `dogs = 1`.
+- Images are resized to 28 x 28 grayscale and normalized with `Rescaling(1./255)`.
+- The two loaders use the same seed and split; only `subset` changes.
+- The output has two softmax neurons and uses `sparse_categorical_crossentropy`.
+- For other classes, update `class_names` in both loaders and set the final Dense layer's neuron count to the number of classes.
+- The reported accuracy is validation accuracy. Reserve separate test images if a final test evaluation is required.
+- 28 x 28 grayscale keeps this example close to MNIST but loses detail from animal photos.
