@@ -34,7 +34,7 @@ def build_model(augment):
     base.trainable = False
 
     model = tf.keras.Sequential()
-    model.add(layers.Input(shape=(150, 150, 3)))
+    model.add(layers.Input(shape=(150, 150, 3))) #3 because color image, if images were loaded with color_mode='grayscale', it wouldve been 1
 
     if augment:
         model.add(layers.RandomRotation(0.1))
