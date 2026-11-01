@@ -6,7 +6,7 @@ from tensorflow.keras.applications import VGG16
 from sklearn.metrics import confusion_matrix
 
 # Dataset
-data_dir = "dataset"
+data_dir = r"dataset"  #r is needed because paths like C:/Users/Admin/Desktop/dataset would get mangled as python considers / as an operator
 
 train_ds = tf.keras.utils.image_dataset_from_directory(
     data_dir,
